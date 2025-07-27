@@ -1,183 +1,120 @@
+# zip_rar_cracker.py
+import os
 import zipfile
 import rarfile
-import os
-from tqdm import tqdm
-from tkinter import filedialog, Tk
-from utils.brute_force import threaded_brute_force
 import pikepdf
 import msoffcrypto
 import py7zr
+import logging
 
-def crack_zip(zip_path, wordlist_path, progress_callback=None):
-    if not os.path.isfile(zip_path):
-        return False, f"ZIP file not found: {zip_path}"
-    if not os.path.isfile(wordlist_path):
-        return False, f"Wordlist file not found: {wordlist_path}"
+# Ensure logs directory exists
+os.makedirs("logs", exist_ok=True)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+def crack_zip(file_path, wordlist_path, progress_callback=None):
+    if not os.path.isfile(file_path): return False, "ZIP file not found"
     try:
-        with zipfile.ZipFile(zip_path) as zf:
-            with open(wordlist_path, 'r', encoding='latin-1') as f:
-                passwords = f.read().splitlines()
-                for i, pwd in enumerate(passwords):
-                    try:
-                        zf.extractall(pwd=pwd.encode())
-                        if progress_callback:
-                            progress_callback(i + 1)
-                        return True, pwd
-                    except (RuntimeError, zipfile.BadZipFile, zipfile.LargeZipFile):
-                        if progress_callback:
-                            progress_callback(i + 1)
-                        continue
+        with zipfile.ZipFile(file_path) as zf, open(wordlist_path, 'r', encoding='latin-1') as f:
+            for i, pwd in enumerate(f.read().splitlines()):
+                try:
+                    zf.extractall(pwd=pwd.encode())
+                    if progress_callback: progress_callback(i + 1)
+                    logger.info(f"ZIP Password found: {pwd}")
+                    return True, pwd
+                except:
+                    if progress_callback: progress_callback(i + 1)
         return False, "Password not found in wordlist."
     except Exception as e:
-        return False, f"ZIP Error: {e}"
+        logger.error(f"ZIP Error: {e}")
+        return False, str(e)
 
-def crack_rar(rar_path, wordlist_path, unrar_tool_path="unRAR.exe", progress_callback=None):
-    if not os.path.isfile(rar_path):
-        return False, f"RAR file not found: {rar_path}"
-    if not os.path.isfile(wordlist_path):
-        return False, f"Wordlist file not found: {wordlist_path}"
+def crack_rar(file_path, wordlist_path, progress_callback=None):
+    if not os.path.isfile(file_path): return False, "RAR file not found"
     try:
-        rarfile.UNRAR_TOOL = unrar_tool_path
-        rf = rarfile.RarFile(rar_path)
+        rarfile.UNRAR_TOOL = "unRAR.exe"
+        rf = rarfile.RarFile(file_path)
         with open(wordlist_path, 'r', encoding='latin-1') as f:
-            passwords = f.read().splitlines()
-            for i, pwd in enumerate(passwords):
+            for i, pwd in enumerate(f.read().splitlines()):
                 try:
                     rf.extractall(pwd=pwd)
-                    if progress_callback:
-                        progress_callback(i + 1)
+                    if progress_callback: progress_callback(i + 1)
+                    logger.info(f"RAR Password found: {pwd}")
                     return True, pwd
-                except (rarfile.BadRarFile, rarfile.RarWrongPassword, RuntimeError):
-                    if progress_callback:
-                        progress_callback(i + 1)
-                    continue
+                except:
+                    if progress_callback: progress_callback(i + 1)
         return False, "Password not found in wordlist."
     except Exception as e:
-        return False, f"RAR Error: {e}"
+        logger.error(f"RAR Error: {e}")
+        return False, str(e)
 
-def crack_pdf(pdf_path, wordlist_path, progress_callback=None):
-    if not os.path.isfile(pdf_path):
-        return False, f"PDF file not found: {pdf_path}"
-    if not os.path.isfile(wordlist_path):
-        return False, f"Wordlist file not found: {wordlist_path}"
+def crack_pdf(file_path, wordlist_path, progress_callback=None):
+    if not os.path.isfile(file_path): return False, "PDF file not found"
     try:
         with open(wordlist_path, 'r', encoding='latin-1') as f:
-            passwords = f.read().splitlines()
-            for i, pwd in enumerate(passwords):
+            for i, pwd in enumerate(f.read().splitlines()):
                 try:
-                    with pikepdf.open(pdf_path, password=pwd):
-                        if progress_callback:
-                            progress_callback(i + 1)
+                    with pikepdf.open(file_path, password=pwd):
+                        if progress_callback: progress_callback(i + 1)
+                        logger.info(f"PDF Password found: {pwd}")
                         return True, pwd
-                except pikepdf._qpdf.PasswordError:
-                    if progress_callback:
-                        progress_callback(i + 1)
-                    continue
+                except:
+                    if progress_callback: progress_callback(i + 1)
         return False, "Password not found in wordlist."
     except Exception as e:
-        return False, f"PDF Error: {e}"
+        logger.error(f"PDF Error: {e}")
+        return False, str(e)
 
-def crack_office(office_path, wordlist_path, progress_callback=None):
-    if not os.path.isfile(office_path):
-        return False, f"Office file not found: {office_path}"
-    if not os.path.isfile(wordlist_path):
-        return False, f"Wordlist file not found: {wordlist_path}"
+def crack_office(file_path, wordlist_path, progress_callback=None):
+    if not os.path.isfile(file_path): return False, "Office file not found"
     try:
         with open(wordlist_path, 'r', encoding='latin-1') as f:
-            passwords = f.read().splitlines()
-            for i, pwd in enumerate(passwords):
+            for i, pwd in enumerate(f.read().splitlines()):
                 try:
-                    with open(office_path, 'rb') as docf:
-                        office = msoffcrypto.OfficeFile(docf)
+                    with open(file_path, 'rb') as doc:
+                        office = msoffcrypto.OfficeFile(doc)
                         office.load_key(password=pwd)
-                        office.decrypt(None)  # Will raise if wrong
-                        if progress_callback:
-                            progress_callback(i + 1)
+                        office.decrypt(None)
+                        if progress_callback: progress_callback(i + 1)
+                        logger.info(f"Office Password found: {pwd}")
                         return True, pwd
-                except Exception:
-                    if progress_callback:
-                        progress_callback(i + 1)
-                    continue
+                except:
+                    if progress_callback: progress_callback(i + 1)
         return False, "Password not found in wordlist."
     except Exception as e:
-        return False, f"Office Error: {e}"
+        logger.error(f"Office Error: {e}")
+        return False, str(e)
 
-def crack_7z(sevenz_path, wordlist_path, progress_callback=None):
-    if not os.path.isfile(sevenz_path):
-        return False, f"7z file not found: {sevenz_path}"
-    if not os.path.isfile(wordlist_path):
-        return False, f"Wordlist file not found: {wordlist_path}"
+def crack_7z(file_path, wordlist_path, progress_callback=None):
+    if not os.path.isfile(file_path): return False, "7Z file not found"
     try:
         with open(wordlist_path, 'r', encoding='latin-1') as f:
-            passwords = f.read().splitlines()
-            for i, pwd in enumerate(passwords):
+            for i, pwd in enumerate(f.read().splitlines()):
                 try:
-                    with py7zr.SevenZipFile(sevenz_path, mode='r', password=pwd) as archive:
+                    with py7zr.SevenZipFile(file_path, mode='r', password=pwd) as archive:
                         archive.extractall()
-                        if progress_callback:
-                            progress_callback(i + 1)
+                        if progress_callback: progress_callback(i + 1)
+                        logger.info(f"7Z Password found: {pwd}")
                         return True, pwd
-                except Exception:
-                    if progress_callback:
-                        progress_callback(i + 1)
-                    continue
+                except:
+                    if progress_callback: progress_callback(i + 1)
         return False, "Password not found in wordlist."
     except Exception as e:
-        return False, f"7z Error: {e}"
+        logger.error(f"7Z Error: {e}")
+        return False, str(e)
 
 def crack_file(file_path, wordlist_path, file_type, progress_callback=None):
+    file_type = file_type.upper()
     if file_type == 'ZIP':
-        return crack_zip(file_path, wordlist_path, progress_callback=progress_callback)
+        return crack_zip(file_path, wordlist_path, progress_callback)
     elif file_type == 'RAR':
-        return crack_rar(file_path, wordlist_path, progress_callback=progress_callback)
+        return crack_rar(file_path, wordlist_path, progress_callback)
     elif file_type == 'PDF':
-        return crack_pdf(file_path, wordlist_path, progress_callback=progress_callback)
+        return crack_pdf(file_path, wordlist_path, progress_callback)
     elif file_type == 'OFFICE':
-        return crack_office(file_path, wordlist_path, progress_callback=progress_callback)
+        return crack_office(file_path, wordlist_path, progress_callback)
     elif file_type == '7Z':
-        return crack_7z(file_path, wordlist_path, progress_callback=progress_callback)
+        return crack_7z(file_path, wordlist_path, progress_callback)
     else:
-        return False, f"Unsupported file type: {file_type}"
-
-def browse_file():
-    root = Tk()
-    root.withdraw()
-    return filedialog.askopenfilename()
-
-def main():
-    print("🔐 Welcome to ZIP & RAR Password Cracker")
-    choice = input("Select mode:\n1. ZIP\n2. RAR\n3. Brute Force ZIP\nEnter choice: ")
-
-    if choice == '1':
-        zip_path = browse_file()
-        wordlist = browse_file()
-        success, result = crack_zip(zip_path, wordlist)
-        if success:
-            print(f"✅ ZIP Password found: {result}")
-        else:
-            print(f"❌ {result}")
-
-    elif choice == '2':
-        rar_path = browse_file()
-        wordlist = browse_file()
-        success, result = crack_rar(rar_path, wordlist)
-        if success:
-            print(f"✅ RAR Password found: {result}")
-        else:
-            print(f"❌ {result}")
-
-    elif choice == '3':
-        zip_path = browse_file()
-        charset = input("Enter charset (e.g. abc123): ")
-        try:
-            max_len = int(input("Max password length: "))
-        except ValueError:
-            print("❌ Max length must be a number.")
-            return
-        threaded_brute_force(zip_path, charset, max_len)
-
-    else:
-        print("❌ Invalid choice")
-
-if __name__ == "__main__":
-    main()
+        logger.warning(f"Unsupported file type: {file_type}")
+        return False, "Unsupported file type."
