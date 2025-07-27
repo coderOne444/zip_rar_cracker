@@ -1,4 +1,5 @@
-# 🔐 ZIP & RAR Password Cracker
+# 🔐 ZIP & RAR Password Cracker 
+For Education purpose only !!
 
 ![License](https://img.shields.io/github/license/coderOne444/zip_rar_cracker?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue?style=flat-square)
