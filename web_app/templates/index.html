@@ -1,0 +1,78 @@
+<!-- web_app/templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Cracker Web UI</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #444;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2e2e2e;
+            color: white;
+        }
+        button {
+            background-color: #4CAF50;
+            cursor: pointer;
+        }
+        .result {
+            padding: 15px;
+            background-color: #2d2d2d;
+            border-left: 4px solid #4CAF50;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        .error {
+            border-left-color: red;
+            color: #ff9999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔐 Password Cracker (Web)</h2>
+        <form method="post" enctype="multipart/form-data">
+            <label>Select Encrypted File:</label>
+            <input type="file" name="protected_file" required>
+
+            <label>Select Wordlist File:</label>
+            <input type="file" name="wordlist_file" required>
+
+            <label>File Type:</label>
+            <select name="file_type">
+                <option>ZIP</option>
+                <option>RAR</option>
+                <option>PDF</option>
+                <option>OFFICE</option>
+                <option>7Z</option>
+            </select>
+
+            <button type="submit">Crack Password</button>
+        </form>
+
+        {% if result %}
+        <div class="result"><strong>{{ result }}</strong></div>
+        {% elif error %}
+        <div class="result error"><strong>{{ error }}</strong></div>
+        {% endif %}
+    </div>
+</body>
+</html>
