@@ -1,0 +1,6 @@
+tkinter
+rarfile
+tqdm
+pikepdf
+msoffcrypto-tool
+py7zr 
